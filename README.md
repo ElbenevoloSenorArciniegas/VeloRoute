@@ -13,5 +13,5 @@ perfil de elevación y coeficientes de dureza de las diferentes rutas trazadas.
 ## Requiere
 - php 7.4
 - mongodb 5.0.0
-- driver php mongoDB 1.7.4
+- driver MongoDB extension version	1.10.0
 
