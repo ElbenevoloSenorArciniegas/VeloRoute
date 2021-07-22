@@ -11,6 +11,7 @@ perfil de elevación y coeficientes de dureza de las diferentes rutas trazadas.
 - Acceso a usuarios y relaciones entre usuarios como compañeros de ruta.
 
 ## Requiere
-- php 1.7.4
+- php 7.4
 - mongodb 5.0.0
+- driver php mongoDB 1.7.4
 
