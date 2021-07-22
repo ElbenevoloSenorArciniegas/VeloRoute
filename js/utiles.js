@@ -109,46 +109,95 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     return new H.map.Icon(canvas);
   }
 
-  function crearIconMarcador(numero){
+function crearIconMarcadorByText(numero){
 
-    var canvas = document.createElement('canvas');
-    canvas.width = 30;
-    canvas.height = 60;
+  var canvas = document.createElement('canvas');
+  canvas.width = 40;
+  canvas.height = 40;
 
-    var ctx = canvas.getContext('2d'); 
+  var ctx = canvas.getContext('2d'); 
 
-    let x = canvas.width/2;
-    let y = 2*canvas.height/4;
-    // Create gradient
-    var grd = ctx.createRadialGradient(x, y, x/2, x, y, x);
-    grd.addColorStop(0,"#eee");
-    grd.addColorStop(1,"#555");
-    // Fill with gradient
-    ctx.fillStyle = grd;
+  let x = canvas.width/2;
+  let y = canvas.height/2;
+  
+  var img = new Image();
+  img.onload = function() {
+      ctx.drawImage(img, 0, 0);
+  }
+  img.src = "img/svg/marker-circle.svg";
 
-    ctx.strokeStyle = "#555";
-    ctx.lineWidth = 3;
 
-    ctx.beginPath();
-    ctx.arc(x, y, x -2 , 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(x, 3*canvas.height/4);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-
-    ctx.font = x+"px Arial";
-    ctx.lineWidth = 1;
-    ctx.textAlign = "center";
-    ctx.strokeText(numero, x, y+4);
-    return new H.map.Icon(canvas);
-  } 
-
-  function htmlToElement(html) {
-    var template = document.createElement('template');
-    html = html.trim(); // Never return a text node of whitespace as the result
-    template.innerHTML = html;
-    return template.content.firstChild;
+  ctx.font = x/2+"px Arial";
+  ctx.lineWidth = 1;
+  ctx.textAlign = "center";
+  ctx.strokeText(numero, x, y);
+  return new H.map.Icon(canvas);
 }
+
+function crearIconMarcadorByIcono(rutaIcono){
+
+  var canvas = document.createElement('canvas');
+  canvas.width = 40;
+  canvas.height = 40;
+
+  var ctx = canvas.getContext('2d');
+  
+  var img = new Image();
+  img.onload = function() {
+    ctx.drawImage(img,0,0,img.width,img.height,0,0,canvas.width,canvas.height);
+  }
+  img.src = rutaIcono;
+  img.setAttribute("viewBox", "-250 -250 500 750"); 
+
+  return new H.map.Icon(canvas);
+} 
+
+function htmlToElement(html) {
+  var template = document.createElement('template');
+  html = html.trim(); // Never return a text node of whitespace as the result
+  template.innerHTML = html;
+  return template.content.firstChild;
+}
+
+
+
+
+var customMarkers= [];
+
+function addMarkerImages(grafico) {
+  var data = grafico.options.data[0];
+  for(var i = 0; i < data.dataPoints.length; i++) {
+    if(data.dataPoints[i].markerImageUrl){
+      let marker = $("<img>").attr("src", data.dataPoints[i].markerImageUrl)
+                    .css("display", "none")
+                    .css("height", 30)
+                    .css("width", 30)
+                    .appendTo($("#canvasdiv>.canvasjs-chart-container"));
+      customMarkers[i] = marker;
+      positionMarkerImage(marker, i, grafico);
+    }
+  }            
+}
+
+function positionMarkerImage(customMarker, index, grafico){ 
+  var pixelX = grafico.axisX[0].convertValueToPixel(grafico.options.data[0].dataPoints[index].x);
+  var pixelY = grafico.axisY[0].convertValueToPixel(grafico.options.data[0].dataPoints[index].y);
+
+  customMarker.css({"position": "absolute", 
+                    "display": "block",
+                    "top": pixelY - customMarker.height()/2,
+                    "left": pixelX - customMarker.width()/2
+                   });
+}
+
+function reajustarImagenesMarcadoresChart(grafico){
+  for(var i = 0; i < grafico.data[0].dataPoints.length; i++){
+    if(grafico.data[0].dataPoints[i].markerImageUrl){
+      positionMarkerImage(customMarkers[i], i, grafico);
+    }
+  }
+}
+
+$(window).resize(function() {
+  reajustarImagenesMarcadoresChart(graficoElevacion);
+});

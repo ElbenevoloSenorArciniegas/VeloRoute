@@ -1,0 +1,89 @@
+.directions li span.arrow {
+    display:inline-block;
+    min-width:28px;
+    min-height:28px;
+    background-position:0px;
+    background-image: url("https://heremaps.github.io/maps-api-for-javascript-examples/map-with-route-from-a-to-b/img/arrows.png");
+    position:relative;
+    top:8px;
+}
+.directions li span.depart  {
+    background-position:-28px;
+}
+.directions li span.rightturn  {
+    background-position:-224px;
+}
+.directions li span.leftturn{
+    background-position:-252px;
+}
+.directions li span.arrive  {
+    background-position:-1288px;
+}
+.badge{padding:.25em .4em;font-size:75%;font-weight:500;line-height:1;text-align:center;white-space:nowrap;vertical-align:baseline;border-radius:.25rem}
+.badge{position:relative;top:-1px;padding-right:.6em;padding-left:.6em;border-radius:10rem }
+
+
+.tapSuperior {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 400px;
+    background: rgb(189 189 189 / 25%);
+    margin-left: -200px;
+    padding: 5px;
+    text-align:center;
+    border-radius: 5px;
+    display: initial;
+}
+.tapSuperior > * {
+    margin-left: 3px;
+    margin-bottom: 3px;
+    border: none;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+}
+.inputBarraSuperior {
+    padding: 5px;
+    border-bottom: 1px solid #d0d9e9;
+    width: 88%;
+    border-radius: 5px;
+}
+
+.btnBarraSuperior{
+    padding: 0px;
+    border-bottom: 1px solid #d0d9e9;
+    width: 8%;
+    border-radius: 5px;
+    text-align: center;
+    height: 25px;
+    color: rgba(15, 22, 33, 0.6);
+    font-size: initial;
+    cursor: pointer;
+}
+
+.btnIcon{
+    width: 100%;
+    height: 100%;
+    font-size: x-large;
+    text-align: center;
+    color: rgba(15, 22, 33, 0.6);
+    margin-top: 18%;
+}
+
+#galeriaIconosBarraSuperior{
+    width: 100%;
+}
+
+#galeriaIconosBarraSuperior td{
+    background-color: white;
+    max-width: 5px;
+    border-radius: 5px;
+    box-shadow: rgb(0 0 0 / 16%) 0px 3px 6px, rgb(0 0 0 / 23%) 0px 3px 6px;
+    padding: 10px;
+    padding-bottom: 5px;
+    height: 20px;
+}
+
+#galeriaIconosBarraSuperior img{
+    width: 100%;
+    height: 100%;
+}

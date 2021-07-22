@@ -1,10 +1,11 @@
 //var waypoints = ['7.8784,-72.5209', '7.9084,-72.4872', '7.913,-72.5323'];
 var waypoints = [];
-var grupoMarcadores = new H.map.Group();
+var grupoMarcadoresRuta = new H.map.Group();
 var grupoRuta = new H.map.Group();
 var grupoMarcadores3D = new H.map.Group();
-var marcadoresEstaticos = new H.map.Group();
+var grupoMarcadoresEstaticos = new H.map.Group();
 var ruta;
+var graficoElevacion;
 /**
  * Calculates and displays a car route between the waypoints
  */
@@ -39,18 +40,26 @@ var ruta;
     var coeficienteDureza = 0;
     var listaTramos = [];
     var indexMarcador = 1;
+    var elevacionInicial;
+    var elevacionFinal;
+    var colorResultante;
+
     route.sections.forEach((section) => {
       // decode LineString from the flexible polyline
       let lineString = H.geo.LineString.fromFlexiblePolyline(section.polyline);
       
       let coords = lineString.getLatLngAltArray();
       
-      var pendiente, distancia, elevacion;
+      var pendiente = 0, distancia = 0, elevacion = 0;
   
       for (let i = 2; i < coords.length; i += 3) {
         let lat = coords[i-2];
         let long = coords[i-1];
         elevacion = coords[i];
+
+        if( elevacionInicial == undefined){
+          elevacionInicial = elevacion;
+        }
         // Calcula las pendientes para ajustar los colores
         if(i+3 < coords.length){
           var latSiguiente = coords[i-2+3];
@@ -59,36 +68,33 @@ var ruta;
   
           var distanciaHorizontal = getDistanceFromLatLonInKm(lat, long, latSiguiente, longSiguiente) * 1000 //metros;
           var diferenciaAltura = elevacionSiguiente - elevacion;
-          pendiente = diferenciaAltura/distanciaHorizontal *100;
-          distancia = Math.hypot(distanciaHorizontal, diferenciaAltura);
+
+          if(distanciaHorizontal > 0){
+            pendiente = diferenciaAltura/distanciaHorizontal *100;
+            distancia = Math.hypot(distanciaHorizontal, diferenciaAltura);
+          }else{
+            //Muestra lo mismo del punto anterior
+          }
+
+          colorResultante = getColorInRange(pendiente);
+          
+          let line = new H.geo.LineString();
+          line.pushLatLngAlt(lat, long, elevacion);
+          line.pushLatLngAlt(latSiguiente, longSiguiente, elevacionSiguiente);
+          grupoRuta.addObject(new H.map.Polyline(line, {style:  {lineWidth: 6, strokeColor: colorResultante }  })    );
+
+          
+          grupoMarcadores3D.addObject(crearMarcadorTramoMapa(colorResultante, lat, long, elevacion, distancia, pendiente ));
+
+          listaTramos.push({x: avance, y: elevacion, lineColor: colorResultante, 
+                          pendiente: pendiente, pendienteFormat: pendiente.toFixed(2)+"%", 
+                          distancia: distancia, distanciaFormat: distancia.toFixed(2)+"m"});
+          
+          avance += distanciaHorizontal;
+          coeficienteDureza += calcularCoeficienteDureza(distancia, pendiente);
         }else{
-          distancia = 0;
-          var distanciaHorizontal = 0;
-          pendiente = 0;
-          var diferenciaAltura = 0;
-        }
-
-        if(distanciaHorizontal > 0){
-            var colorResultante = getColorInRange(pendiente);
-            let line = new H.geo.LineString();
-            line.pushLatLngAlt(lat, long, elevacion);
-            line.pushLatLngAlt(latSiguiente, longSiguiente, elevacionSiguiente);
-            let polylineTramo = new H.map.Polyline(line, {
-                style:  {
-                  lineWidth: 6,
-                  strokeColor: colorResultante
-              }
-            });
-            grupoRuta.addObject(polylineTramo);
-
-            grupoMarcadores3D.addObject(crearMarcadorTramoMapa(colorResultante, coords[i - 2], coords[i - 1], elevacion, distancia, pendiente ));
-
-            listaTramos.push({x: avance, y: elevacion, lineColor: colorResultante, 
-                            pendiente: pendiente, pendienteFormat: pendiente.toFixed(2)+"%", 
-                            distancia: distancia, distanciaFormat: distancia.toFixed(2)+"m"});
-            
-            avance += distanciaHorizontal;
-            coeficienteDureza += calcularCoeficienteDureza(distancia, pendiente);
+          //se editará con el fin de cada sección, al final sólo importará la que quede, ya que es la última.
+          elevacionFinal = elevacion;
         }
       }
   
@@ -103,30 +109,51 @@ var ruta;
       listaTramos.push({x: avance, y: elevacion, lineColor: colorResultante, 
                           pendiente: pendiente, pendienteFormat: pendiente.toFixed(2)+"%", 
                           distancia: distancia, distanciaFormat: distancia.toFixed(2)+"m", 
-                          indexLabel: ""+(indexMarcador+1)+"", markerType: "cross",markerColor: "#333", markerSize: 10, indexLabelFontWeight: "bold", indexLabelFontSize: "24"});
+                          indexLabel: ""+(indexMarcador+1)+"\n", indexLabelFontWeight: "bold", indexLabelFontSize: "24", markerImageUrl: "img/svg/marker-circle.svg"});
       indexMarcador++;
     });
+
+//https://www.flaticon.com/packs/map-and-navigation-32
+//https://www.flaticon.com/packs/winning-51?k=1626741486713
+
+    let marcadorDeComienzo = JSON.parse(JSON.stringify(listaTramos[0]));
+    marcadorDeComienzo.indexLabel = "1";
+    marcadorDeComienzo.indexLabelFontWeight = "bold";
+    marcadorDeComienzo.indexLabelFontSize = "24";
+    marcadorDeComienzo.markerImageUrl = 'img/svg/start.svg';
+
+    listaTramos.unshift(marcadorDeComienzo);
+
+    listaTramos[listaTramos.length-1].markerImageUrl = 'img/svg/finish.svg';
+
     //Hacemos zoom a los objetos de la ruta
     map.getViewModel().setLookAtData({
       bounds: grupoRuta.getBoundingBox()
     });
+
+    var pendienteMedia = (elevacionFinal-elevacionInicial)/avance *100;
     //Dibujamos el perfil de elevación
-    mostrarPerfilElevacionRuta(listaTramos, avance,coeficienteDureza);
+    mostrarPerfilElevacionRuta(listaTramos, avance, coeficienteDureza);
+
+    ruta.listaTramos = listaTramos;
+    ruta.distanciaTotal = avance;
+    ruta.pendienteMedia = pendienteMedia;
+    ruta.coeficienteDureza = coeficienteDureza;
   }
   
   function mostrarPerfilElevacionRuta(puntos, distanciaTotal, coeficienteDureza){
-    var chart = new CanvasJS.Chart("canvasdiv",
+    graficoElevacion = new CanvasJS.Chart("canvasdiv",
         {
             zoomEnabled: true,
             animationEnabled: true, 
             animationDuration: 3000,
+            exportEnabled: true,
             title:{
                 text: "Perfil de elevación"
             },
             subtitles:[
-                {
-                    text: "Distancia: "+(distanciaTotal/1000).toFixed(2)+" Km"+" - Coeficiente: "+coeficienteDureza.toFixed(2)
-                }
+                {text: `Distancia: ${(distanciaTotal/1000).toFixed(2)} Km
+                        Coeficiente: ${coeficienteDureza.toFixed(2)}`}
             ],
             toolTip:{
                 enabled: true,       //disable here
@@ -148,7 +175,7 @@ var ruta;
             data: [
             { 
                 markerType: "none",
-                lineThickness: 15,  
+                lineThickness: 15,
                 type: "splineArea",
                 dataPoints: puntos
             }
@@ -161,18 +188,40 @@ var ruta;
                 distanciaRango = datosRango.distancia;
                 coeficienteRango = datosRango.coeficienteDureza;
               }
-              chart.subtitles[0].set("text", "Distancia: "+(distanciaRango/1000).toFixed(2)+" Km"+" - Coeficiente: "+coeficienteRango.toFixed(2), false);
+              graficoElevacion.subtitles[0].set("text", 
+                  `Distancia: ${(distanciaRango/1000).toFixed(2)} Km
+                  Coeficiente: ${coeficienteRango.toFixed(2)}`, false);
+            },
+            rangeChanged: function(e){
+              reajustarImagenesMarcadoresChart(graficoElevacion);
             }
         });
     
-    chart.render();
+    graficoElevacion.render();
+    addMarkerImages(graficoElevacion);
   }
   
-  function crearMarcador(coords){
-    waypoints.push(coords.lat+","+coords.lng);
-    var marcador = new H.map.Marker(coords, {icon: crearIconMarcador(waypoints.length)});
-    grupoMarcadores.addObject(marcador);
-    map.addObject(grupoMarcadores);
+  function crearMarcadorRuta(){
+    waypoints.push(coordsUltimoClick.lat+","+coordsUltimoClick.lng);
+    var marcador = new H.map.Marker(coordsUltimoClick, {icon: crearIconMarcadorByText(waypoints.length)});
+    grupoMarcadoresRuta.addObject(marcador);
+    map.addObject(grupoMarcadoresRuta);
+  }
+
+  function crearMarcadorEstatico(indexMarcador, elementoImagen){
+    waypoints.push(coordsUltimoClick.lat+","+coordsUltimoClick.lng);
+    
+    const antiguoMarcador = grupoMarcadoresEstaticos.getObjects()[indexMarcador-1];
+    if(antiguoMarcador != undefined){
+      grupoMarcadoresEstaticos.removeObject(antiguoMarcador);
+    }
+
+    $(".selected").removeClass("selected");
+    elementoImagen.className ="selected";
+
+    var marcador = new H.map.Marker(coordsUltimoClick, {icon: crearIconMarcadorByIcono(elementoImagen.src)});
+    grupoMarcadoresEstaticos.addObject(marcador);
+    map.addObject(grupoMarcadoresEstaticos);
   }
 
   function calcularDatosRangoRuta(comienzo, fin, puntos){
@@ -190,6 +239,7 @@ var ruta;
           let diferenciaAltura = punto.pendiente * distanciaHorizontal / 100;
           distanciaASumar = Math.hypot(distanciaHorizontal, diferenciaAltura);
           yaEnRango = false;
+          break;
         }else{
           distanciaASumar = punto.distancia;
         }
@@ -214,9 +264,9 @@ var ruta;
       //map.removeObject(grupoRuta);
       grupoRuta.removeAll();
     }
-    if(grupoMarcadores != null && grupoMarcadores != undefined){
+    if(grupoMarcadoresRuta != null && grupoMarcadoresRuta != undefined){
       //map.removeObject(marcadores);
-      grupoMarcadores.removeAll();
+      grupoMarcadoresRuta.removeAll();
     }
     if(grupoMarcadores3D != null && grupoMarcadores3D != undefined){
       //map.removeObject(grupoMarcadores3D);
@@ -225,10 +275,10 @@ var ruta;
   }
 
   function quitarUltimoMarcador(){
-    if(grupoMarcadores != null && grupoMarcadores != undefined){
-      var ultimo = grupoMarcadores.getObjects().pop();
+    if(grupoMarcadoresRuta != null && grupoMarcadoresRuta != undefined){
+      var ultimo = grupoMarcadoresRuta.getObjects().pop();
       if(ultimo != null && ultimo != undefined){
-        grupoMarcadores.removeObject(ultimo);
+        grupoMarcadoresRuta.removeObject(ultimo);
         waypoints.pop();
       }
     }
@@ -242,7 +292,29 @@ var ruta;
     map.removeObject(grupoMarcadores3D);
   }
 
-  function colocarMarcadoresEstaticos(){
-    marcadoresEstaticos.addObject(new H.map.Marker({lat:'7.8784',lng:'-72.5209'}, {icon: crearIconMarcador("C")}));
-    map.addObject(marcadoresEstaticos);
+  function colocarMarcadoresEstaticos(marcadores){
+    for (let i = 0; i < marcadores.length; i++) {
+      const marcador = marcadores[i];
+      grupoMarcadoresEstaticos.addObject(new H.map.Marker({lat:marcador.coords.lat,lng:marcador.coords.lng}, {icon: crearIconMarcadorByIcono("img/svg/"+marcador.icono)}));
+    }
+    map.addObject(grupoMarcadoresEstaticos);
+  }
+
+  function guardarRuta(){
+    var nombreRuta = $("#inputBarraSuperior").val();
+    graficoElevacion.title.set("text", nombreRuta);
+    ruta.nombre = nombreRuta;
+
+    peticionGuardarRuta(JSON.stringify(ruta));
+  }
+
+  function guardarMarcador(){
+    var nombreMarcador = $("#inputBarraSuperior").val();
+    var marcador = {
+      nombre: nombreMarcador,
+      coords: coordsUltimoClick,
+      icono: $(".selected")[0].src.split("/svg/")[1]
+    }
+
+    peticionGuardarMarcador(JSON.stringify(marcador));
   }

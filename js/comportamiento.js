@@ -7,6 +7,8 @@ var ui;
 var modo3D = false;
 var modoColocarMarcador = false;
 
+var coordsUltimoClick;
+
 //================================================== COMPORTAMIENTO GENERAL HereMaps  ========================================================================
 
 function init(){
@@ -43,8 +45,6 @@ function init(){
 
   // Create the default UI components
   ui = H.ui.UI.createDefault(map, defaultLayers, 'es-ES');
-
-  colocarMarcadoresEstaticos();
 }
 
 function crearListenerMap(tipoEvento, funcionAEjecutar){
@@ -73,7 +73,7 @@ function crearBoton(opt_options, funciones){
 
     // create a button element   
     this.nuevoBtn = new H.ui.base.Button({
-        'label': iconosSVG[options.icono],
+        'label': '<i class="btnIcon fas fa-'+options.icono+'"></i>',
         'onStateChange': this.onButtonClick
     });
 
@@ -96,27 +96,27 @@ function crearBoton(opt_options, funciones){
 
 function crearBotones(){
 
-  var botonCrearMarcador = crearBoton({
-    icono: "insertarMarcador"
+  var botonCrearMarcadorRuta = crearBoton({
+    icono: "map-marker-alt"
   }, 
     { onClick : function(evt){
         modoColocarMarcador = !modoColocarMarcador;
         if(modoColocarMarcador){
           waypoints = [];
-          if(grupoMarcadores != null && grupoMarcadores != undefined){
-            grupoMarcadores.removeAll();
+          if(grupoMarcadoresRuta != null && grupoMarcadoresRuta != undefined){
+            grupoMarcadoresRuta.removeAll();
           }
-          crearListenerMap('tap', tapListener);
+          crearListenerMap('tap', crearMarcadorRutaOnTap);
           ui.getControl('btnCrearRuta').setDisabled(false);
           ui.getControl('btnDeshacer').setDisabled(false);
         }
       }
     }
   );
-  ui.addControl('btnCrearMarcador', botonCrearMarcador);
+  ui.addControl('btnCrearMarcadorRuta', botonCrearMarcadorRuta);
 
   var botonDeshacer = crearBoton({
-    icono : "deshacer",
+    icono : "undo",
     disabled : true
   }, 
     { onClick : function(evt){quitarUltimoMarcador()} }
@@ -124,7 +124,7 @@ function crearBotones(){
   ui.addControl('btnDeshacer', botonDeshacer);
 
   var botonModo3D = crearBoton({
-    icono : "modo3D",
+    icono : "wave-square",
     alignment: "left-middle"
   }, 
     { onClick : function(evt){
@@ -140,13 +140,14 @@ function crearBotones(){
   ui.addControl('btnModo3D', botonModo3D);
 
   var botonCrearRuta = crearBoton({
-    icono : "consultarRuta",
+    icono : "route",
     disabled : true,
     alignment: "left-middle"
   }, 
     { onClick : function(evt){
         calculateRouteFromAtoB(); 
-        removerListenerMap('tap',tapListener); 
+        removerListenerMap('tap',crearMarcadorRutaOnTap);
+        abrirBarraSuperior('save', "guardarRuta");
         ui.getControl('btnDeshacer').setDisabled(true);
       } 
     }
@@ -154,18 +155,30 @@ function crearBotones(){
   ui.addControl('btnCrearRuta', botonCrearRuta);
 
   var botonLimpiarMapa = crearBoton({
-    icono : "limpiarMapa",
+    icono : "eraser",
     alignment: "left-bottom"
   }, 
     { onClick : function(evt){
         quitarRuta(); 
-        removerListenerMap('tap',tapListener); 
+        removerListenerMap('tap',crearMarcadorRutaOnTap); 
         ui.getControl('btnCrearRuta').setDisabled(true); 
         ui.getControl('btnDeshacer').setDisabled(true);
       } 
     }
   );
   ui.addControl('btnLimpiarMapa', botonLimpiarMapa);
+
+  var botonCrearMarcadorEstatico = crearBoton({
+    icono : "map-marked",
+    alignment: "top-right"
+  }, 
+    { onClick : function(evt){
+        crearListenerMap('tap', crearMarcadorEstaticoOnTap);
+        abrirBarraSuperiorComplementoIconos('marcador');
+      } 
+    }
+  );
+  ui.addControl('btnCrearMarcadorEstatico', botonCrearMarcadorEstatico);
 
 }
 
@@ -183,10 +196,53 @@ function openBubble(position, text) {
   }
 }
 
-function tapListener(evt){
-  var coords = map.screenToGeo(evt.currentPointer.viewportX, evt.currentPointer.viewportY);
-  crearMarcador(coords);
+function crearMarcadorRutaOnTap(evt){
+  coordsUltimoClick = map.screenToGeo(evt.currentPointer.viewportX, evt.currentPointer.viewportY);
+  crearMarcadorRuta();
 }
+
+function crearMarcadorEstaticoOnTap(evt){
+  coordsUltimoClick = map.screenToGeo(evt.currentPointer.viewportX, evt.currentPointer.viewportY);
+  var indexMarcador =  grupoMarcadoresEstaticos.getObjects().length;
+  var img = $("#galeriaIconosBarraSuperior").find("img")[0];
+  crearMarcadorEstatico(indexMarcador,img);
+}
+
+function crearBarraSuperior(){
+  var tapSuperior = document.createElement('div');
+  tapSuperior.display ='none';
+  tapSuperior.id ='tapSuperior';
+  map.getElement().appendChild(tapSuperior);
+}
+
+function abrirBarraSuperior(iconoBoton, funcionAEjecutar){
+  var tapSuperior = $('#tapSuperior');
+  tapSuperior.addClass('tapSuperior');
+  tapSuperior.html('<input id="inputBarraSuperior" placeholder="Nombre" class="inputBarraSuperior"/><button class="btnBarraSuperior" onclick="'+funcionAEjecutar+'()"><i class="fas fa-'+iconoBoton+'"></i></button>');
+}
+
+function abrirBarraSuperiorComplementoIconos(tipoIconos){
+  abrirBarraSuperior('save', "guardarMarcador");
+  var tapSuperior = $('#tapSuperior');
+  var onclick = "crearMarcadorEstatico("+grupoMarcadoresEstaticos.getObjects().length+",this)";
+  var html = `
+  <div>
+    <table id="galeriaIconosBarraSuperior">
+      <tr>
+        <td><img src="img/svg/flag-blue.svg" onclick="${onclick}"/></td>
+        <td><img src="img/svg/flag-green.svg" onclick="${onclick}"/></td>
+        <td><img src="img/svg/flag.svg" onclick="${onclick}"/></td>
+        <td><img src="img/svg/house.svg" onclick="${onclick}"/></td>
+        <td><img src="img/svg/marker-stick.svg" onclick="${onclick}"/></td>
+        <td><img src="img/svg/favorite.svg" onclick="${onclick}"/></td>
+      </tr>
+    </table>
+  </div>`;
+  tapSuperior.append(html);
+}
+
 //========================================================================================================================================================
 init();
 crearBotones();
+crearBarraSuperior();
+peticionConsultarMarcadoresEstaticos();
