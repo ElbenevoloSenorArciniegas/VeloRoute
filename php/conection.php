@@ -1,7 +1,11 @@
 <?php
 
 // Manager Class
-$manager = new MongoDB\Driver\Manager("mongodb://localhost:27017");
+//$manager = new MongoDB\Driver\Manager("mongodb://localhost:27017");
+$manager = new MongoDB\Driver\Manager('mongodb+srv://veloRoute:VéloRoute@cluster0.awzwn.mongodb.net/VeloRoute?retryWrites=true&w=majority');
+//$client = new MongoDB\Client('mongodb+srv://veloRoute:VéloRoute@cluster0.awzwn.mongodb.net/VeloRoute?retryWrites=true&w=majority');
+//$db = $client->test;
+
 $collection = 'VeloRoute.VeloRoute';
 
 
@@ -43,7 +47,16 @@ if( !isset($aResult['error']) ) {
         case 'listarMarcadores':
             $aResult['result'] = listarMarcadores();
             break;
-            
+        case 'listarRutas':
+            $aResult['result'] = listarRutas();
+            break;
+        case 'cargarRuta':
+            if( !isset($_POST['arguments']) ) { 
+                $aResult['error'] = 'No function arguments!'; 
+            }else{
+                $aResult['result'] = cargarRuta($_POST['arguments']);
+            }
+            break;   
 
         default:
             $aResult['error'] = 'Not found function '.$_POST['functionname'].'!';
@@ -91,7 +104,7 @@ function insert($var){
 
 function guardarRuta($stringRuta){
     global $manager;
-    $collection = 'VeloRoute.rutas';
+    $collection = 'VeloRoute.Rutas';
     $bulk = new MongoDB\Driver\BulkWrite;
     
     // Convert JSON to a PHP array
@@ -111,6 +124,9 @@ function guardarMarcador($stringMarcador){
 
     $_id1 = $bulk->insert($document);
     $result = $manager->executeBulkWrite($collection, $bulk);
+
+    $db = $client->test;
+
 }
 
 function listarMarcadores(){
@@ -118,6 +134,36 @@ function listarMarcadores(){
     $collection = 'VeloRoute.Marcadores';
     // Query Class
     $query = new MongoDB\Driver\Query([]);
+
+    // Output of the executeQuery will be object of MongoDB\Driver\Cursor class
+    $result = $manager->executeQuery($collection, $query);
+
+    return $result->toArray();
+}
+
+function listarRutas(){
+    global $manager;
+    $collection = 'VeloRoute.Rutas';
+    // Query Class
+    $filter = [];
+    $options = [
+        'projection' => ['nombre' => 1],
+    ];
+    $query = new MongoDB\Driver\Query($filter, $options);
+
+    // Output of the executeQuery will be object of MongoDB\Driver\Cursor class
+    $result = $manager->executeQuery($collection, $query);
+
+    return $result->toArray();
+}
+
+function cargarRuta($idRuta){
+    global $manager;
+    $collection = 'VeloRoute.Rutas';
+    // Query Class
+    $filter =  ['_id'=> new MongoDB\BSON\ObjectId("$idRuta")];
+    $options = [];
+    $query = new MongoDB\Driver\Query($filter, $options);
 
     // Output of the executeQuery will be object of MongoDB\Driver\Cursor class
     $result = $manager->executeQuery($collection, $query);

@@ -5,7 +5,8 @@ var platform;
 var ui;
 
 var modo3D = false;
-var modoColocarMarcador = false;
+var modoColocarMarcadorRuta = false;
+var modoColocarMarcadorEstatico = false;
 
 var coordsUltimoClick;
 
@@ -99,16 +100,19 @@ function crearBotones(){
   var botonCrearMarcadorRuta = crearBoton({
     icono: "map-marker-alt"
   }, 
-    { onClick : function(evt){
-        modoColocarMarcador = !modoColocarMarcador;
-        if(modoColocarMarcador){
-          waypoints = [];
-          if(grupoMarcadoresRuta != null && grupoMarcadoresRuta != undefined){
-            grupoMarcadoresRuta.removeAll();
+    { 
+      onClick : function(evt){
+        if(!modoColocarMarcadorEstatico){
+          modoColocarMarcadorRuta = !modoColocarMarcadorRuta;
+          if(modoColocarMarcadorRuta){
+            waypoints = [];
+            if(grupoMarcadoresRuta != null && grupoMarcadoresRuta != undefined){
+              grupoMarcadoresRuta.removeAll();
+            }
+            crearListenerMap('tap', crearMarcadorRutaOnTap);
+            ui.getControl('btnCrearRuta').setDisabled(false);
+            ui.getControl('btnDeshacer').setDisabled(false);
           }
-          crearListenerMap('tap', crearMarcadorRutaOnTap);
-          ui.getControl('btnCrearRuta').setDisabled(false);
-          ui.getControl('btnDeshacer').setDisabled(false);
         }
       }
     }
@@ -180,6 +184,17 @@ function crearBotones(){
   );
   ui.addControl('btnCrearMarcadorEstatico', botonCrearMarcadorEstatico);
 
+  var botoncargarRutas = crearBoton({
+    icono : "search-location",
+    alignment: "top-right"
+  }, 
+    { onClick : function(evt){
+        mostrarBarraLateral();
+      } 
+    }
+  );
+  ui.addControl('btncargarRutas', botoncargarRutas);
+
 }
 
 function openBubble(position, text) {
@@ -203,9 +218,8 @@ function crearMarcadorRutaOnTap(evt){
 
 function crearMarcadorEstaticoOnTap(evt){
   coordsUltimoClick = map.screenToGeo(evt.currentPointer.viewportX, evt.currentPointer.viewportY);
-  var indexMarcador =  grupoMarcadoresEstaticos.getObjects().length;
   var img = $("#galeriaIconosBarraSuperior").find("img")[0];
-  crearMarcadorEstatico(indexMarcador,img);
+  crearMarcadorEstatico(img);
 }
 
 function crearBarraSuperior(){
@@ -224,7 +238,7 @@ function abrirBarraSuperior(iconoBoton, funcionAEjecutar){
 function abrirBarraSuperiorComplementoIconos(tipoIconos){
   abrirBarraSuperior('save', "guardarMarcador");
   var tapSuperior = $('#tapSuperior');
-  var onclick = "crearMarcadorEstatico("+grupoMarcadoresEstaticos.getObjects().length+",this)";
+  var onclick = "crearMarcadorEstatico(this)";
   var html = `
   <div>
     <table id="galeriaIconosBarraSuperior">
@@ -241,8 +255,35 @@ function abrirBarraSuperiorComplementoIconos(tipoIconos){
   tapSuperior.append(html);
 }
 
+function crearBarraLateral(listaRutas){
+  var barraLateral = document.createElement('div');
+  //barraLateral.display ='none';
+  barraLateral.id ='barraLateral';
+  map.getElement().appendChild(barraLateral);
+
+  let lista = "";
+  for (let i = 0; i < listaRutas.length; i++) {
+    lista += `<li><a onclick="peticionCargarRuta('${listaRutas[i]._id["$oid"]}')"><i class="far fa-eye"></i></a>&nbsp${listaRutas[i].nombre}</li>`;
+  }
+  $("#barraLateral").html(`
+    <h4 style="margin: 0px; margin-left: 5px;">
+      <a onclick="ocultarBarraLateral()"><i class="fas fa-times"></i></a>
+      &nbspRutas guardadas:
+    </h4>
+    <ul>${lista}</ul>`);
+}
+
+function mostrarBarraLateral(){
+  $("#barraLateral").css({"right":"0%"});
+}
+
+function ocultarBarraLateral(){
+  $("#barraLateral").css({"right":"-30%"});
+}
+
 //========================================================================================================================================================
 init();
 crearBotones();
 crearBarraSuperior();
 peticionConsultarMarcadoresEstaticos();
+peticionListarRutas();

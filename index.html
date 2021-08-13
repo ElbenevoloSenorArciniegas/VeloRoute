@@ -3,7 +3,10 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
-    <title>Map with Driving Route from A to B</title>
+    <title>Vélo Route</title>
+
+    <link rel="icon" href="img/favicon.png">
+
     <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
     <link rel="stylesheet" type="text/css" href="css/demo.css" />
     <link rel="stylesheet" type="text/css" href="css/styles.css" />
@@ -19,11 +22,11 @@
   </head>
   <body id="markers-on-the-map">
     
-    <div id="map"></div>
+    <div id="map" style="width: 100%;"></div>
     <!--<div id="panel"></div>-->
-    <div id="canvasdiv" style="width: 100%; height: 400px;">
-    </div>
+    <div id="canvasdiv" style="width: 100%; height: 400px;"></div>
 
+    <input type="file" name="inputfile" id="inputfile" onchange="leerArchivo()">
     <div>Icons made by <a href="" title="turkkub">turkkub</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
     <div>Icons made by <a href="https://www.flaticon.com/authors/flat-icons" title="Flat Icons">Flat Icons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 
@@ -34,7 +37,9 @@
     <script type="text/javascript" src='js/main.js'></script>
     <script type="text/javascript" src='js/comportamiento.js'></script>
 
-    <script type="text/javascript" src='js/plugins/brain.min.js'></script>
+    <!--<script type="text/javascript" src='js/plugins/brain.min.js'></script>
     <script type="text/javascript" src='js/neural.js'></script>
+    <script type="text/javascript" src='js/plugins/dimas-kmeans.js'></script>-->
+    <script type="text/javascript" src='js/plugins/jDBScan.js'></script>
   </body>
 </html>

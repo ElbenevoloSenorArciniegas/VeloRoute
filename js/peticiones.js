@@ -69,3 +69,41 @@ function peticionConsultarMarcadoresEstaticos(){
         }
     });
 }
+
+function peticionListarRutas(){
+    jQuery.ajax({
+        type: "POST",
+        url: 'php/conection.php',
+        dataType: 'json',
+        data: {functionname: 'listarRutas'},
+    
+        success: function (obj, textstatus) {
+            if( !('error' in obj) ) {
+                crearBarraLateral(obj.result);
+            }
+            else {
+                console.log(obj.error);
+            }
+        }
+    });
+}
+
+function peticionCargarRuta(idRuta){
+    jQuery.ajax({
+        type: "POST",
+        url: 'php/conection.php',
+        dataType: 'json',
+        data: {functionname: 'cargarRuta', arguments: idRuta},
+    
+        success: function (obj, textstatus) {
+            if( !('error' in obj) ) {
+                quitarRuta();
+                ruta = obj.result[0];
+                procesarRuta(ruta);
+            }
+            else {
+                console.log(obj.error);
+            }
+        }
+    });
+}
